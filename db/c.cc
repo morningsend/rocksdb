@@ -75,6 +75,8 @@ using ROCKSDB_NAMESPACE::EnvOptions;
 using ROCKSDB_NAMESPACE::FileLock;
 using ROCKSDB_NAMESPACE::FilterPolicy;
 using ROCKSDB_NAMESPACE::FlushOptions;
+using ROCKSDB_NAMESPACE::HistogramData;
+using ROCKSDB_NAMESPACE::Histograms;
 using ROCKSDB_NAMESPACE::InfoLogLevel;
 using ROCKSDB_NAMESPACE::IngestExternalFileOptions;
 using ROCKSDB_NAMESPACE::Iterator;
@@ -103,7 +105,9 @@ using ROCKSDB_NAMESPACE::SliceParts;
 using ROCKSDB_NAMESPACE::SliceTransform;
 using ROCKSDB_NAMESPACE::Snapshot;
 using ROCKSDB_NAMESPACE::SstFileWriter;
+using ROCKSDB_NAMESPACE::Statistics;
 using ROCKSDB_NAMESPACE::Status;
+using ROCKSDB_NAMESPACE::Tickers;
 using ROCKSDB_NAMESPACE::Transaction;
 using ROCKSDB_NAMESPACE::TransactionDB;
 using ROCKSDB_NAMESPACE::TransactionDBOptions;
@@ -193,6 +197,10 @@ struct rocksdb_optimistictransaction_options_t {
 
 struct rocksdb_compactionfiltercontext_t {
   CompactionFilter::Context rep;
+};
+
+struct rocksdb_historgram_data_t {
+  HistogramData data;
 };
 
 struct rocksdb_compactionfilter_t : public CompactionFilter {

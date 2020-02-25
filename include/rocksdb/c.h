@@ -125,6 +125,7 @@ typedef struct rocksdb_wal_iterator_t rocksdb_wal_iterator_t;
 typedef struct rocksdb_wal_readoptions_t rocksdb_wal_readoptions_t;
 typedef struct rocksdb_memory_consumers_t rocksdb_memory_consumers_t;
 typedef struct rocksdb_memory_usage_t rocksdb_memory_usage_t;
+typedef struct rocksdb_histogram_data_t rocksdb_histogram_data_t;
 
 /* DB operations */
 
@@ -1795,6 +1796,17 @@ rocksdb_approximate_memory_usage_get_mem_table_readers_total(
 extern ROCKSDB_LIBRARY_API uint64_t
 rocksdb_approximate_memory_usage_get_cache_total(
     rocksdb_memory_usage_t* memory_usage);
+
+/* Statistics */
+
+extern ROCKSDB_LIBRARY_API uint64_t
+rocksdb_options_statistics_get_ticker(
+    rocksdb_options_t* options, uint32_t ticker_type);
+
+extern ROCKSDB_LIBRARY_API uint64_t 
+rocksdb_options_statistics_get_histogram(
+    rocksdb_options_t* options, uint32_t histogram_type);
+
 
 #ifdef __cplusplus
 }  /* end extern "C" */
