@@ -127,6 +127,7 @@ typedef struct rocksdb_memory_consumers_t rocksdb_memory_consumers_t;
 typedef struct rocksdb_memory_usage_t rocksdb_memory_usage_t;
 typedef struct rocksdb_histogram_data_t rocksdb_histogram_data_t;
 
+
 /* DB operations */
 
 extern ROCKSDB_LIBRARY_API rocksdb_t* rocksdb_open(
