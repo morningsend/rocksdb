@@ -35,6 +35,7 @@
 #include "rocksdb/utilities/db_ttl.h"
 #include "rocksdb/utilities/memory_util.h"
 #include "rocksdb/utilities/optimistic_transaction_db.h"
+#include "rocksdb/utilities/options_util.h"
 #include "rocksdb/utilities/transaction.h"
 #include "rocksdb/utilities/transaction_db.h"
 #include "rocksdb/utilities/write_batch_with_index.h"
@@ -3748,6 +3749,114 @@ void rocksdb_delete_file_in_range_cf(
           db->rep, column_family->rep,
           (start_key ? (a = Slice(start_key, start_key_len), &a) : nullptr),
           (limit_key ? (b = Slice(limit_key, limit_key_len), &b) : nullptr)));
+}
+
+extern ROCKSDB_LIBRARY_API void rocksdb_column_family_options_destroy(
+  rocksdb_options_t** cf_opts, size_t len) {
+    for(size_t i = 0; i < len; ++i) {
+        free(cf_opts[i]);
+    }
+    free(cf_opts);
+}
+
+extern ROCKSDB_LIBRARY_API void rocksdb_options_utils_get_latest_options_file_name(
+    const char* db_path, rocksdb_env_t* env, char** options_file_name, char** errptr) {
+  std::string file_name;
+  std::string db_path_str(db_path);
+  Status s = ROCKSDB_NAMESPACE::GetLatestOptionsFileName(
+    db_path_str, env->rep, &file_name);
+
+  if(s.ok()) {
+    *options_file_name = CopyString(file_name);
+  } else {
+    SaveError(errptr, s);
+  }
+}
+
+extern ROCKSDB_LIBRARY_API void rocksdb_options_utils_load_latest_options(
+    const char* dbname, rocksdb_env_t* env, rocksdb_options_t** options,
+    int* num_column_families, char*** cf_names, rocksdb_options_t*** cf_options,
+    unsigned char ignore_unknown_options, rocksdb_cache_t* c_cache, char** errptr) {
+  DBOptions db_options;
+  std::vector<ColumnFamilyDescriptor> cf_descs;
+  std::shared_ptr<Cache>* cache = c_cache == nullptr ? nullptr : &c_cache->rep;
+  Status s = ROCKSDB_NAMESPACE::LoadLatestOptions(
+    std::string(dbname), env->rep, &db_options, &cf_descs, ignore_unknown_options, nullptr);
+
+  if(!s.ok()){
+    SaveError(errptr, s);
+    return;
+  }
+
+  printf("test opening db\n");
+  DB*db;
+  std::vector<ColumnFamilyHandle*>cf_handles;
+  s = DB::Open(db_options, dbname,  cf_descs, &cf_handles, &db);
+  if(!s.ok()) {
+    printf("open failed\n");
+  }
+  printf("open succeeded\n");
+
+  *options = rocksdb_options_create();
+  (*options)->rep = Options(db_options, cf_descs[0].options);
+  (*options)->rep = Options();
+  *cf_options = static_cast<rocksdb_options_t**>(malloc(sizeof(rocksdb_options_t*) * cf_descs.size()));
+  *cf_names = static_cast<char**>(malloc(sizeof(char*) * cf_descs.size()));
+  *num_column_families = cf_descs.size();
+  for(size_t i = 0; i < cf_descs.size(); i++) {
+    (*cf_names)[i] = strdup(cf_descs[i].name.c_str());
+    (*cf_options)[i]  = new rocksdb_options_t{Options(db_options, cf_descs[i].options)};
+  }
+}
+
+extern ROCKSDB_LIBRARY_API void rocksdb_options_utils_load_options_from_file(
+    const char* options_file_name, rocksdb_env_t* env, rocksdb_options_t** options,
+    int* num_column_families, char*** cf_names, rocksdb_options_t*** cf_options,
+    unsigned char ignore_unknown_options, rocksdb_cache_t* c_cache, char** errptr) {
+
+  vector<ColumnFamilyDescriptor> cf_descs;
+  std::shared_ptr<Cache>* cache = c_cache == nullptr ? nullptr : &c_cache->rep;
+  std::string file_name(options_file_name);
+
+  DBOptions db_options;
+
+  Status s = ROCKSDB_NAMESPACE::LoadOptionsFromFile(
+    file_name, env->rep, &db_options, &cf_descs, ignore_unknown_options, cache);
+
+  if(!s.ok()) {
+    SaveError(errptr, s);
+    return;
+  }
+
+  *options = rocksdb_options_create();
+  (*options)->rep = Options(db_options, cf_descs[0].options);
+  *cf_options = static_cast<rocksdb_options_t**>(malloc(sizeof(rocksdb_options_t*) * cf_descs.size()));
+  *cf_names = static_cast<char**>(malloc(sizeof(char*) * cf_descs.size()));
+  *num_column_families = cf_descs.size();
+  for(size_t i = 0; i < cf_descs.size(); i++) {
+    (*cf_names)[i] = strdup(cf_descs[i].name.c_str());
+    (*cf_options)[i] = rocksdb_options_create();
+    (*cf_options)[i]->rep = Options(db_options, cf_descs[i].options);
+  }
+}
+
+extern ROCKSDB_LIBRARY_API void rocksdb_options_utils_check_options_compatibility(
+    const char* dbpath, rocksdb_env_t* env, rocksdb_options_t* c_db_options,
+    int num_column_families, const char* const* column_family_names,
+    const rocksdb_options_t* const* cf_options,
+    unsigned char ignore_unknown_options, char** errptr) {
+  std::vector<ColumnFamilyDescriptor> cf_descs;
+  for(int i = 0; i < num_column_families; ++i) {
+    cf_descs.push_back(ColumnFamilyDescriptor(
+                      std::string(column_family_names[i]),
+                      ColumnFamilyOptions(cf_options[i]->rep)));
+  }
+
+  ROCKSDB_NAMESPACE::DBOptions db_options(c_db_options->rep);
+
+  SaveError(errptr, ROCKSDB_NAMESPACE::CheckOptionsCompatibility(
+    std::string(dbpath), env->rep, db_options, cf_descs, ignore_unknown_options
+  ));
 }
 
 rocksdb_transactiondb_options_t* rocksdb_transactiondb_options_create() {

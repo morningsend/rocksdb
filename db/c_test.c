@@ -1774,6 +1774,50 @@ int main(int argc, char** argv) {
     db = rocksdb_open(options, dbname, &err);
     CheckNoError(err);
   }
+  
+  StartPhase("options_utils");
+  {
+    rocksdb_close(db);
+    
+    char* options_file_name = NULL;
+    rocksdb_options_utils_get_latest_options_file_name(dbname, env, &options_file_name, &err);
+    CheckNoError(err)
+    CheckCondition(options_file_name != NULL);
+    Free(&options_file_name);
+
+    rocksdb_options_t* loaded_options = NULL;
+
+    int num_cf = 0;
+    char** cf_names = NULL;
+    rocksdb_options_t** loaded_cf_options = NULL;
+    
+    rocksdb_options_utils_load_latest_options(
+      dbname, env, &loaded_options, &num_cf, &cf_names, &loaded_cf_options, 0, NULL, &err);
+
+    CheckNoError(err);
+    CheckCondition(num_cf > 0);
+    CheckCondition(loaded_cf_options != NULL);
+    CheckCondition(cf_names != NULL);
+
+    //rocksdb_options_set_error_if_exists(loaded_options, 0);
+
+    //CheckNoError(err);
+    // check we can open db with options loaded from file
+    //db = rocksdb_open(loaded_options, dbname, &err);
+    //CheckNoError(err);
+    //rocksdb_close(db);
+
+    rocksdb_column_family_handle_t* cf_handles[1];
+    db = rocksdb_open_column_families(loaded_options, dbname, 1,
+                                      (const char *const *)cf_names,
+                                      (const struct rocksdb_options_t *const *)loaded_cf_options,
+                                      cf_handles, &err);
+    CheckNoError(err);
+
+    rocksdb_list_column_families_destroy(cf_names, num_cf);
+    rocksdb_column_family_options_destroy(loaded_cf_options, num_cf);
+    rocksdb_column_family_handle_destroy(cf_handles[0]);
+  }
 
   // Check that secondary instance works.
   StartPhase("open_as_secondary");

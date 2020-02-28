@@ -1509,6 +1509,30 @@ extern ROCKSDB_LIBRARY_API void rocksdb_delete_file_in_range_cf(
     const char* start_key, size_t start_key_len, const char* limit_key,
     size_t limit_key_len, char** errptr);
 
+/* Options Utilities */
+
+extern ROCKSDB_LIBRARY_API void rocksdb_column_family_options_destroy(
+    rocksdb_options_t** cf_opts, size_t len);
+
+extern ROCKSDB_LIBRARY_API void rocksdb_options_utils_get_latest_options_file_name(
+    const char* db_path, rocksdb_env_t* env, char** options_file_name, char** errptr);
+
+extern ROCKSDB_LIBRARY_API void rocksdb_options_utils_load_latest_options(
+    const char* db_path, rocksdb_env_t* env, rocksdb_options_t** options,
+    int* num_column_families, char*** cf_names, rocksdb_options_t*** cf_options,
+    unsigned char ignore_unknown_options, rocksdb_cache_t* c_cache, char** errptr);
+
+extern ROCKSDB_LIBRARY_API void rocksdb_options_utils_load_options_from_file(
+    const char* options_file_name, rocksdb_env_t* env, rocksdb_options_t** options,
+    int* num_column_families, char*** cf_names, rocksdb_options_t*** cf_options,
+    unsigned char ignore_unknown_options, rocksdb_cache_t* c_cache, char** errptr);
+
+extern ROCKSDB_LIBRARY_API void rocksdb_options_utils_check_options_compatibility(
+    const char* dbpath, rocksdb_env_t* env, rocksdb_options_t* c_db_options,
+    int num_column_families, const char* const* column_family_names,
+    const rocksdb_options_t* const* cf_options,
+    unsigned char ignore_unknown_options, char** errptr);
+
 /* Transactions */
 
 extern ROCKSDB_LIBRARY_API rocksdb_column_family_handle_t*
